@@ -7,7 +7,7 @@
 
 __version__="1.0.0"
 
-HOST='0.0.0.0'
+HOST='127.0.0.1'
 PORT='8080'
 
 RED="$(printf '\033[31m')"
@@ -150,14 +150,24 @@ setup_site() {
     cp -f ".sites/post.php" ".server/www/" 2>/dev/null
 
     echo -ne "${RED}[-]${BLUE} Starting PHP server on ${HOST}:${PORT}...${WHITE}"
-    cd ".server/www" && php -S "${HOST}:${PORT}" >/dev/null 2>&1 &
+    
+    # Start PHP server from BASE_DIR but point to www directory
+    php -S "${HOST}:${PORT}" -t ".server/www" >/dev/null 2>&1 &
     PHPPID=$!
-    cd "$BASE_DIR"
-    sleep 2
+    sleep 3
     
     # Verify PHP server is running
     if ! kill -0 $PHPPID 2>/dev/null; then
         echo -e "\n${RED}[!] PHP server failed to start${WHITE}"
+        exit 1
+    fi
+    
+    # Test if PHP server is responding
+    if curl -s -o /dev/null -w "%{http_code}" "http://${HOST}:${PORT}" | grep -q "200\|404"; then
+        echo -e "${GREEN} OK${WHITE}"
+    else
+        echo -e "\n${RED}[!] PHP server not responding${WHITE}"
+        kill $PHPPID 2>/dev/null
         exit 1
     fi
 }
